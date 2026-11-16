@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>나만의 카페 경영 시뮬레이션</title>
+<style>
+  :root {
+    --bg: #fff8ee;
+    --card: #ffffff;
+    --brown: #6b4423;
+    --brown-light: #a67c52;
+    --cream: #f5e6d0;
+    --accent: #e8913a;
+    --green: #3f9a6b;
+    --red: #d9534f;
+    --text: #3b2a1a;
+    --muted: #8a7260;
+    --border: #ecd9bf;
+    --shadow: 0 6px 20px rgba(107, 68, 35, 0.10);
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
+    background: linear-gradient(180deg, #fff3e0 0%, var(--bg) 220px);
+    color: var(--text);
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 20px 16px 40px; }
+
+  header { text-align: center; padding: 16px 0 22px; }
+  header .icon { font-size: 44px; line-height: 1; }
+  h1 { margin: 6px 0 4px; font-size: clamp(1.5rem, 5vw, 2.2rem); color: var(--brown); letter-spacing: -0.5px; }
+  header p { margin: 0; color: var(--muted); font-size: 0.98rem; }
+
+  .layout { display: grid; grid-template-columns: 1fr; gap: 18px; }
+  @media (min-width: 768px) {
+    .layout { grid-template-columns: 340px 1fr; align-items: start; }
+  }
+  @media (min-width: 1024px) {
+    .layout { grid-template-columns: 380px 1fr; gap: 24px; }
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+    padding: 20px;
+  }
+  .card h2 { margin: 0 0 14px; font-size: 1.15rem; color: var(--brown); }
+
+  /* 입력 */
+  .field { margin-bottom: 18px; }
+  .field label { display: block; font-weight: 700; margin-bottom: 6px; font-size: 1rem; }
+  .input-row { display: flex; gap: 8px; align-items: stretch; }
+  .input-box {
+    flex: 1; min-width: 0; position: relative;
+  }
+  .input-box input {
+    width: 100%; height: 52px;
+    font-size: 1.15rem; font-weight: 700; color: var(--text);
+    text-align: right;
+    padding: 0 40px 0 12px;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    background: #fffdf9;
+    font-family: inherit;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .input-box .unit {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    color: var(--muted); font-weight: 600; pointer-events: none;
+  }
+  .input-box input:focus {
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 4px rgba(232, 145, 58, 0.2);
+  }
+  .field.invalid .input-box input { border-color: var(--red); background: #fff5f4; }
+  .step-btn {
+    width: 52px; min-width: 52px; height: 52px;
+    border: none; border-radius: 12px;
+    background: var(--cream); color: var(--brown);
+    font-size: 1.5rem; font-weight: 700; cursor: pointer;
+    touch-action: manipulation;
+    transition: background .15s, transform .05s;
+    font-family: inherit;
+  }
+  .step-btn:hover { background: #efd7b5; }
+  .step-btn:active { transform: scale(0.95); }
+  .step-btn:focus-visible, .reset-btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .hint { font-size: 0.82rem; color: var(--muted); margin-top: 5px; }
+  .error { font-size: 0.88rem; color: var(--red); margin-top: 5px; min-height: 0; display: none; font-weight: 600; }
+  .field.invalid .error { display: block; }
+
+  .reset-btn {
+    width: 100%; height: 52px; border: none; border-radius: 12px;
+    background: var(--brown); color: #fff; font-size: 1.05rem; font-weight: 700;
+    cursor: pointer; font-family: inherit; touch-action: manipulation;
+    transition: background .15s;
+  }
+  .reset-btn:hover { background: #55341a; }
+
+  /* 결과 */
+  .results { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 18px; }
+  @media (min-width: 480px) { .results { grid-template-columns: repeat(3, 1fr); } }
+  .stat {
+    border-radius: 14px; padding: 14px 16px;
+    background: var(--cream);
+  }
+  .stat .label { font-size: 0.9rem; color: var(--muted); font-weight: 600; }
+  .stat .value { font-size: clamp(1.25rem, 4.5vw, 1.55rem); font-weight: 800; margin-top: 2px; word-break: keep-all; overflow-wrap: anywhere; }
+  .stat.revenue { background: #fdebd2; }
+  .stat.revenue .value { color: var(--accent); }
+  .stat.cost { background: #f3e7dc; }
+  .stat.cost .value { color: var(--brown-light); }
+  .stat.profit { background: #e3f4ea; }
+  .stat.profit .value { color: var(--green); }
+  .stat.profit.loss { background: #fdeaea; }
+  .stat.profit.loss .value { color: var(--red); }
+
+  .extra { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 0.95rem; margin-bottom: 18px; color: var(--muted); }
+  .extra b { color: var(--text); }
+
+  /* 그래프 */
+  .chart { margin-top: 4px; }
+  .bar-item { margin-bottom: 16px; }
+  .bar-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; font-weight: 700; }
+  .bar-head .num { font-size: 1.05rem; }
+  .track { width: 100%; height: 38px; background: #f7efe3; border-radius: 10px; overflow: hidden; }
+  .fill { height: 100%; width: 0; border-radius: 10px; transition: width .45s ease; }
+  .fill.revenue { background: linear-gradient(90deg, #f5b45f, var(--accent)); }
+  .fill.profit { background: linear-gradient(90deg, #7fcaa0, var(--green)); }
+  .fill.profit.loss { background: linear-gradient(90deg, #ec928f, var(--red)); }
+
+  .alert {
+    display: none; margin-bottom: 14px; padding: 12px 14px; border-radius: 12px;
+    font-weight: 600; font-size: 0.95rem;
+  }
+  .alert.show { display: block; }
+  .alert.warn { background: #fff0e0; color: #a85a10; border: 1px solid #f3c996; }
+  .alert.err { background: #fdeaea; color: #a93431; border: 1px solid #f0b6b4; }
+
+  .notice {
+    margin-top: 22px; padding: 14px 16px; border-radius: 12px;
+    background: #fff; border: 1px dashed var(--brown-light);
+    color: var(--muted); font-size: 0.9rem; text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="icon" aria-hidden="true">☕</div>
+    <h1>나만의 카페 경영 시뮬레이션</h1>
+    <p>가격, 재료비, 판매량을 바꾸면서 하루 매출과 이익을 확인해 보세요.</p>
+  </header>
+
+  <main class="layout">
+    <!-- 입력 영역 -->
+    <section class="card" aria-labelledby="input-title">
+      <h2 id="input-title">📝 조건 입력</h2>
+
+      <div class="field" id="field-price">
+        <label for="price">커피 한 잔 판매 가격</label>
+        <div class="input-row">
+          <button type="button" class="step-btn" data-target="price" data-step="-100" aria-label="판매 가격 100원 줄이기">−</button>
+          <div class="input-box">
+            <input id="price" type="text" inputmode="numeric" autocomplete="off" value="4,000" aria-describedby="err-price">
+            <span class="unit">원</span>
+          </div>
+          <button type="button" class="step-btn" data-target="price" data-step="100" aria-label="판매 가격 100원 늘리기">+</button>
+        </div>
+        <div class="hint">0원 ~ 1,000,000원 (버튼은 100원 단위)</div>
+        <div class="error" id="err-price" role="alert"></div>
+      </div>
+
+      <div class="field" id="field-cost">
+        <label for="cost">커피 한 잔 재료비</label>
+        <div class="input-row">
+          <button type="button" class="step-btn" data-target="cost" data-step="-100" aria-label="재료비 100원 줄이기">−</button>
+          <div class="input-box">
+            <input id="cost" type="text" inputmode="numeric" autocomplete="off" value="1,500" aria-describedby="err-cost">
+            <span class="unit">원</span>
+          </div>
+          <button type="button" class="step-btn" data-target="cost" data-step="100" aria-label="재료비 100원 늘리기">+</button>
+        </div>
+        <div class="hint">0원 ~ 1,000,000원 (버튼은 100원 단위)</div>
+        <div class="error" id="err-cost" role="alert"></div>
+      </div>
+
+      <div class="field" id="field-qty">
+        <label for="qty">하루 예상 판매량</label>
+        <div class="input-row">
+          <button type="button" class="step-btn" data-target="qty" data-step="-1" aria-label="판매량 1잔 줄이기">−</button>
+          <div class="input-box">
+            <input id="qty" type="text" inputmode="numeric" autocomplete="off" value="50" aria-describedby="err-qty">
+            <span class="unit">잔</span>
+          </div>
+          <button type="button" class="step-btn" data-target="qty" data-step="1" aria-label="판매량 1잔 늘리기">+</button>
+        </div>
+        <div class="hint">0잔 ~ 100,000잔 (버튼은 1잔 단위)</div>
+        <div class="error" id="err-qty" role="alert"></div>
+      </div>
+
+      <button type="button" class="reset-btn" id="reset">기본값으로 되돌리기</button>
+    </section>
+
+    <!-- 결과 영역 -->
+    <section class="card" aria-labelledby="result-title">
+      <h2 id="result-title">📊 하루 예상 결과</h2>
+
+      <div class="alert err" id="alert-err">입력값을 확인해 주세요. 올바른 값이 입력되면 결과가 표시됩니다.</div>
+      <div class="alert warn" id="alert-loss">⚠️ 재료비가 판매 가격보다 높아 팔수록 손해가 납니다.</div>
+
+      <div class="results" aria-live="polite">
+        <div class="stat revenue">
+          <div class="label">하루 예상 매출</div>
+          <div class="value" id="out-revenue">0원</div>
+        </div>
+        <div class="stat cost">
+          <div class="label">전체 재료비</div>
+          <div class="value" id="out-cost">0원</div>
+        </div>
+        <div class="stat profit" id="stat-profit">
+          <div class="label">재료비 제외 이익</div>
+          <div class="value" id="out-profit">0원</div>
+        </div>
+      </div>
+
+      <div class="extra">
+        <span>한 잔당 이익: <b id="out-unit">0원</b></span>
+        <span>이익률: <b id="out-margin">0%</b></span>
+      </div>
+
+      <div class="chart" role="img" aria-label="매출과 재료비 제외 이익 비교 막대그래프" id="chart">
+        <div class="bar-item">
+          <div class="bar-head"><span>매출</span><span class="num" id="bar-revenue-num">0원</span></div>
+          <div class="track"><div class="fill revenue" id="bar-revenue"></div></div>
+        </div>
+        <div class="bar-item">
+          <div class="bar-head"><span>재료비 제외 이익</span><span class="num" id="bar-profit-num">0원</span></div>
+          <div class="track"><div class="fill profit" id="bar-profit"></div></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <p class="notice">
+    ※ 이 시뮬레이션은 실제 매출을 예측하는 것이 아니라, 사용자가 입력한 조건으로 계산한 결과입니다.
+    임대료, 인건비 등 다른 비용은 포함하지 않았습니다.
+  </p>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var DEFAULTS = { price: 4000, cost: 1500, qty: 50 };
+  var CONFIG = {
+    price: { max: 1000000, name: '판매 가격', unit: '원' },
+    cost:  { max: 1000000, name: '재료비',   unit: '원' },
+    qty:   { max: 100000,  name: '판매량',   unit: '잔' }
+  };
+  var keys = ['price', 'cost', 'qty'];
+
+  var $ = function (id) { return document.getElementById(id); };
+  var inputs = {}, fields = {}, errors = {};
+  keys.forEach(function (k) {
+    inputs[k] = $(k);
+    fields[k] = $('field-' + k);
+    errors[k] = $('err-' + k);
+  });
+
+  function won(n) {
+    return (n < 0 ? '-' : '') + Math.abs(n).toLocaleString('ko-KR') + '원';
+  }
+  function fmt(n) { return n.toLocaleString('ko-KR'); }
+
+  // 입력 문자열 검사 -> {ok, value, msg}
+  function validate(key) {
+    var cfg = CONFIG[key];
+    var raw = inputs[key].value.replace(/,/g, '').trim();
+    if (raw === '') return { ok: false, msg: cfg.name + '을(를) 입력해 주세요.' };
+    if (!/^\d+$/.test(raw)) return { ok: false, msg: '0 이상의 숫자만 입력할 수 있습니다.' };
+    var n = Number(raw);
+    if (!isFinite(n)) return { ok: false, msg: '올바른 숫자를 입력해 주세요.' };
+    if (n > cfg.max) return { ok: false, msg: cfg.name + '은(는) ' + fmt(cfg.max) + cfg.unit + ' 이하로 입력해 주세요.' };
+    return { ok: true, value: n };
+  }
+
+  // 숫자 이외 문자 제거 + 천 단위 쉼표 + 커서 위치 보정
+  function sanitize(el) {
+    var val = el.value;
+    var pos = el.selectionStart == null ? val.length : el.selectionStart;
+    var digitsBefore = val.slice(0, pos).replace(/[^\d]/g, '').length;
+    var digits = val.replace(/[^\d]/g, '').replace(/^0+(?=\d)/, '');
+    // 너무 긴 입력 방지
+    if (digits.length > 12) digits = digits.slice(0, 12);
+    var formatted = digits === '' ? '' : Number(digits).toLocaleString('ko-KR');
+    el.value = formatted;
+    // 커서 복원
+    var count = 0, newPos = formatted.length;
+    if (digitsBefore === 0) newPos = 0;
+    else {
+      for (var i = 0; i < formatted.length; i++) {
+        if (/\d/.test(formatted[i])) count++;
+        if (count >= digitsBefore) { newPos = i + 1; break; }
+      }
+    }
+    try { el.setSelectionRange(newPos, newPos); } catch (e) {}
+  }
+
+  function setBar(id, numId, value, max, isLoss) {
+    var bar = $(id);
+    var pct = max > 0 ? Math.min(100, Math.abs(value) / max * 100) : 0;
+    bar.style.width = pct + '%';
+    bar.classList.toggle('loss', !!isLoss);
+    $(numId).textContent = won(value);
+  }
+
+  function showInvalid() {
+    ['out-revenue', 'out-cost', 'out-profit'].forEach(function (id) { $(id).textContent = '-'; });
+    $('out-unit').textContent = '-';
+    $('out-margin').textContent = '-';
+    $('bar-revenue').style.width = '0%';
+    $('bar-profit').style.width = '0%';
+    $('bar-revenue-num').textContent = '-';
+    $('bar-profit-num').textContent = '-';
+    $('stat-profit').classList.remove('loss');
+    $('alert-loss').classList.remove('show');
+  }
+
+  function update() {
+    var vals = {}, allOk = true;
+    keys.forEach(function (k) {
+      var r = validate(k);
+      if (r.ok) {
+        vals[k] = r.value;
+        fields[k].classList.remove('invalid');
+        errors[k].textContent = '';
+        inputs[k].setAttribute('aria-invalid', 'false');
+      } else {
+        allOk = false;
+        fields[k].classList.add('invalid');
+        errors[k].textContent = r.msg;
+        inputs[k].setAttribute('aria-invalid', 'true');
+      }
+    });
+
+    $('alert-err').classList.toggle('show', !allOk);
+    if (!allOk) { showInvalid(); return; }
+
+    var revenue = vals.price * vals.qty;
+    var totalCost = vals.cost * vals.qty;
+    var profit = revenue - totalCost;
+    var unit = vals.price - vals.cost;
+    var isLoss = profit < 0;
+    var margin = revenue > 0 ? (profit / revenue * 100) : 0;
+
+    $('out-revenue').textContent = won(revenue);
+    $('out-cost').textContent = won(totalCost);
+    $('out-profit').textContent = won(profit);
+    $('out-unit').textContent = won(unit);
+    $('out-margin').textContent = (Math.round(margin * 10) / 10).toLocaleString('ko-KR') + '%';
+    $('stat-profit').classList.toggle('loss', isLoss);
+    $('alert-loss').classList.toggle('show', vals.cost > vals.price);
+
+    var max = Math.max(revenue, Math.abs(profit));
+    setBar('bar-revenue', 'bar-revenue-num', revenue, max, false);
+    setBar('bar-profit', 'bar-profit-num', profit, max, isLoss);
+  }
+
+  // 이벤트: 입력
+  keys.forEach(function (k) {
+    var el = inputs[k];
+    el.addEventListener('input', function () { sanitize(el); update(); });
+    el.addEventListener('keydown', function (e) {
+      // 음수, 소수점, 지수 표기 등 차단
+      if (e.key === '-' || e.key === '+' || e.key === '.' || e.key === 'e' || e.key === 'E') {
+        e.preventDefault();
+      }
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        step(k, (e.key === 'ArrowUp' ? 1 : -1) * Math.abs(Number(document.querySelector('[data-target="' + k + '"][data-step^="-"]').dataset.step)));
+      }
+    });
+    el.addEventListener('blur', function () {
+      // 비어 있으면 안내만 유지 (값을 임의로 바꾸지 않음)
+      update();
+    });
+  });
+
+  // 이벤트: +/- 버튼
+  function step(key, delta) {
+    var r = validate(key);
+    var cur = r.ok ? r.value : 0;
+    var next = Math.min(CONFIG[key].max, Math.max(0, cur + delta));
+    inputs[key].value = fmt(next);
+    update();
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.step-btn'), function (btn) {
+    btn.addEventListener('click', function () {
+      step(btn.dataset.target, Number(btn.dataset.step));
+    });
+  });
+
+  // 이벤트: 초기화
+  $('reset').addEventListener('click', function () {
+    keys.forEach(function (k) { inputs[k].value = fmt(DEFAULTS[k]); });
+    update();
+  });
+
+  update();
+})();
+</script>
+</body>
+</html>
